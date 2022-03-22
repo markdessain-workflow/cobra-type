@@ -1,4 +1,4 @@
-package cobra_type
+package cobratype
 
 import (
 	"fmt"

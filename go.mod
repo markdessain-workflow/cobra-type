@@ -1,3 +1,3 @@
-module github.com/markdessain/cobra-type
+module github.com/markdessain/cobratype
 
 go 1.17
