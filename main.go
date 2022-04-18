@@ -14,12 +14,12 @@ func NewTimeValue(p *time.Time) *TimeFlag {
 }
 
 func (f *TimeFlag) String() string {
-	layout := "2006-01-02T15:04:05+07:00"
+	layout := "2006-01-02T15:04:05-07:00"
 	return fmt.Sprintf("%v", time.Time(*f).Format(layout))
 }
 
 func (f *TimeFlag) Set(v string) error {
-	layout := "2006-01-02T15:04:05+07:00"
+	layout := "2006-01-02T15:04:05-07:00"
 	t, err := time.Parse(layout, v)
 	if err != nil {
 		log.Println(err)
