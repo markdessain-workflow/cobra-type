@@ -1,6 +1,7 @@
 package cobratype
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -29,7 +30,79 @@ func (f *TimeFlag) Set(v string) error {
 	return nil
 }
 
-// Type is only used in help text
 func (f *TimeFlag) Type() string {
 	return "time"
+}
+
+type IntervalFlag struct {
+	Start time.Time
+	End   time.Time
+	name  string
+}
+
+func NewIntervalValue() *IntervalFlag {
+	return &IntervalFlag{}
+}
+
+func (f *IntervalFlag) String() string {
+	return fmt.Sprintf("%v - %v", time.Time(f.Start).Format(time.RFC3339Nano), time.Time(f.End).Format(time.RFC3339Nano))
+}
+
+func (f *IntervalFlag) Set(v string) error {
+
+	f.name = v
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Println(err)
+	}
+
+	path := home + "/.checkpoints"
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		err := os.Mkdir(path, os.ModePerm)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
+	dat, err := os.ReadFile(home + "/.checkpoints/" + v)
+
+	if err != nil {
+		f.Start = time.Now().UTC()
+	} else {
+		t, err := time.Parse(time.RFC3339Nano, string(dat))
+		if err != nil {
+			log.Println(err)
+			f.Start = time.Now().UTC()
+		}
+		f.Start = t
+	}
+	f.End = time.Now().UTC()
+	return nil
+}
+
+func (f *IntervalFlag) Save() error {
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	file, err := os.Create(home + "/.checkpoints/" + f.name)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = file.WriteString(f.End.Format(time.RFC3339Nano))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *IntervalFlag) Type() string {
+	return "interval"
 }
