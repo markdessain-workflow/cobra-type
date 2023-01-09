@@ -1,5 +1,4 @@
-// package cobratype
-package main
+package cobratype
 
 import (
 	"encoding/json"
@@ -14,21 +13,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
-
-func main() {
-
-	dat, err := os.ReadFile("/home/gitpod/.checkpoints/test")
-
-	s := strings.TrimSuffix(string(dat), "\n")
-	fmt.Println(err)
-	fmt.Println(string(dat))
-	fmt.Println(s)
-
-	t, err := time.Parse(time.RFC3339Nano, s)
-
-	fmt.Println(err)
-	fmt.Println(t)
-}
 
 type TimeFlag time.Time
 
