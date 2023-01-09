@@ -1,6 +1,7 @@
 package cobratype
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -135,4 +136,45 @@ func SaveInterval(cmd *cobra.Command, args []string) error {
 
 func (f *IntervalFlag) Type() string {
 	return "interval"
+}
+
+func ExclusiveRequireGroups(combinations [][]string) func(cmd *cobra.Command, args []string) error {
+
+	return func(cmd *cobra.Command, args []string) error {
+		setOfNames := make(map[string]bool)
+		var bucket *int
+
+		for _, v := range combinations {
+			for _, v2 := range v {
+				setOfNames[v2] = true
+			}
+		}
+
+		error := false
+
+		cmd.Flags().Visit(func(flag *pflag.Flag) {
+
+			for i, v := range combinations {
+				for _, v2 := range v {
+					if v2 == flag.Name {
+						if bucket == nil {
+							bucket = &i
+						} else if bucket != &i {
+							error = true
+						}
+					}
+				}
+			}
+		})
+
+		if error {
+			b, err := json.Marshal(combinations)
+			if err != nil {
+				fmt.Println(err)
+			}
+			return errors.New("Only include one of the following groups: " + string(b))
+		} else {
+			return nil
+		}
+	}
 }
