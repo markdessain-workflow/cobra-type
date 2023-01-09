@@ -3,9 +3,14 @@ package cobratype
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
+	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 type TimeFlag time.Time
@@ -23,7 +28,7 @@ func (f *TimeFlag) Set(v string) error {
 	layout := "2006-01-02T15:04:05-07:00"
 	t, err := time.Parse(layout, v)
 	if err != nil {
-		log.Println(err)
+		log.Error().Err(err).Send()
 		os.Exit(1)
 	}
 	*f = (TimeFlag)(t)
@@ -35,17 +40,24 @@ func (f *TimeFlag) Type() string {
 }
 
 type IntervalFlag struct {
-	Start time.Time
-	End   time.Time
+	Start *time.Time
+	End   *time.Time
 	name  string
 }
 
-func NewIntervalValue() *IntervalFlag {
-	return &IntervalFlag{}
+func NewIntervalValue(start *time.Time, end *time.Time) *IntervalFlag {
+	if start == nil {
+		start = &time.Time{}
+	}
+	if end == nil {
+		end = &time.Time{}
+	}
+
+	return &IntervalFlag{Start: start, End: end}
 }
 
 func (f *IntervalFlag) String() string {
-	return fmt.Sprintf("%v - %v", time.Time(f.Start).Format(time.RFC3339Nano), time.Time(f.End).Format(time.RFC3339Nano))
+	return f.name + "|" + f.Start.Format(time.RFC3339Nano) + "|" + f.End.Format(time.RFC3339Nano)
 }
 
 func (f *IntervalFlag) Set(v string) error {
@@ -54,53 +66,71 @@ func (f *IntervalFlag) Set(v string) error {
 
 	home, err := os.UserHomeDir()
 	if err != nil {
-		log.Println(err)
+		log.Error().Err(err).Send()
 	}
 
 	path := home + "/.checkpoints"
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 		err := os.Mkdir(path, os.ModePerm)
 		if err != nil {
-			log.Println(err)
+			log.Error().Err(err).Send()
 		}
 	}
 
 	dat, err := os.ReadFile(home + "/.checkpoints/" + v)
 
 	if err != nil {
-		f.Start = time.Now().UTC()
+		*f.Start = time.Now().UTC()
 	} else {
 		t, err := time.Parse(time.RFC3339Nano, string(dat))
 		if err != nil {
-			log.Println(err)
-			f.Start = time.Now().UTC()
+			log.Error().Err(err).Send()
+			*f.Start = time.Now().UTC()
 		}
-		f.Start = t
+		*f.Start = t
 	}
-	f.End = time.Now().UTC()
+	*f.End = time.Now().UTC()
+
+	log.Debug().Msg("Start Time: " + f.Start.String())
+	log.Debug().Msg("End Time: " + f.End.String())
 	return nil
 }
 
-func (f *IntervalFlag) Save() error {
+func SaveInterval(cmd *cobra.Command, args []string) error {
 
 	home, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatal(err)
+		log.Error().Err(err).Send()
 	}
 
-	file, err := os.Create(home + "/.checkpoints/" + f.name)
+	cmd.Flags().Visit(func(flag *pflag.Flag) {
 
-	if err != nil {
-		return err
-	}
+		if flag.Value.Type() == "interval" {
 
-	_, err = file.WriteString(f.End.Format(time.RFC3339Nano))
+			parts := strings.Split(flag.Value.String(), "|")
 
-	if err != nil {
-		return err
-	}
+			name := parts[0]
+			end := parts[2]
+
+			file, err := os.Create(home + "/.checkpoints/" + name)
+
+			if err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			_, err = file.WriteString(end)
+
+			if err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+		}
+
+	})
 
 	return nil
+
 }
 
 func (f *IntervalFlag) Type() string {
