@@ -167,7 +167,7 @@ func ExclusiveRequireGroups(combinations [][]string) func(cmd *cobra.Command, ar
 			}
 		})
 
-		if error {
+		if error || bucket == nil {
 			b, err := json.Marshal(combinations)
 			if err != nil {
 				fmt.Println(err)
