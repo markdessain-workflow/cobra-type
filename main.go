@@ -1,4 +1,5 @@
-package cobratype
+// package cobratype
+package main
 
 import (
 	"encoding/json"
@@ -13,6 +14,21 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
+
+func main() {
+
+	dat, err := os.ReadFile("/home/gitpod/.checkpoints/test")
+
+	s := strings.TrimSuffix(string(dat), "\n")
+	fmt.Println(err)
+	fmt.Println(string(dat))
+	fmt.Println(s)
+
+	t, err := time.Parse(time.RFC3339Nano, s)
+
+	fmt.Println(err)
+	fmt.Println(t)
+}
 
 type TimeFlag time.Time
 
@@ -83,7 +99,7 @@ func (f *IntervalFlag) Set(v string) error {
 	if err != nil {
 		*f.Start = time.Now().UTC()
 	} else {
-		t, err := time.Parse(time.RFC3339Nano, string(dat))
+		t, err := time.Parse(time.RFC3339Nano, strings.TrimSuffix(string(dat), "\n"))
 		if err != nil {
 			log.Error().Err(err).Send()
 			*f.Start = time.Now().UTC()
